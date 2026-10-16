@@ -5,6 +5,9 @@
     python -m src.cli search   "QUERY" [--index index]         # Search
     python -m src.cli search                                   # interactive search prompt
     python -m src.cli tokenize "తెలుగు వాక్యం"                   # show the analysis pipeline
+
+Add --translit to any command to print Telugu in Latin letters (ISO 15919),
+for terminals that render Telugu script incorrectly.
 """
 
 import argparse
@@ -17,6 +20,7 @@ from .query import QueryError
 from .search import search, snippet
 from .storage import load_index, save_index
 from .tokenizer import tokenize
+from .translit import TransliteratingStream
 
 
 def cmd_build(args) -> None:
@@ -113,31 +117,39 @@ def main(argv=None) -> None:
 
     parser = argparse.ArgumentParser(description="Anveshinchu: positional inverted index search engine")
     sub = parser.add_subparsers(dest="command", required=True)
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--translit", action="store_true", help="print Telugu in Latin letters (ISO 15919)")
 
-    p = sub.add_parser("build", help="build the index from data/ and save it to index/")
+    p = sub.add_parser("build", parents=[common], help="build the index from data/ and save it to index/")
     p.add_argument("--data", default="data")
     p.add_argument("--index", default="index")
     p.set_defaults(func=cmd_build)
 
-    p = sub.add_parser("stats", help="load a saved index and print statistics / postings")
+    p = sub.add_parser("stats", parents=[common], help="load a saved index and print statistics / postings")
     p.add_argument("--index", default="index")
     p.add_argument("--term", nargs="*", help="show the positional postings list of these terms")
     p.add_argument("--limit", type=int, default=10, help="max documents shown per postings list")
     p.set_defaults(func=cmd_stats)
 
-    p = sub.add_parser("search", help="run a query against a saved index")
+    p = sub.add_parser("search", parents=[common], help="run a query against a saved index")
     p.add_argument("query", nargs="?", help="omit for an interactive prompt")
     p.add_argument("--index", default="index")
     p.add_argument("--snippets", type=int, default=2, help="max snippets shown per document")
     p.add_argument("--top", type=int, default=10, help="max documents shown")
     p.set_defaults(func=cmd_search)
 
-    p = sub.add_parser("tokenize", help="show tokenizer and normalizer output for a sentence")
+    p = sub.add_parser("tokenize", parents=[common], help="show tokenizer and normalizer output for a sentence")
     p.add_argument("text")
     p.set_defaults(func=cmd_tokenize)
 
     args = parser.parse_args(argv)
-    args.func(args)
+    if args.translit:
+        sys.stdout = TransliteratingStream(sys.stdout)
+    try:
+        args.func(args)
+    finally:
+        if isinstance(sys.stdout, TransliteratingStream):
+            sys.stdout = sys.stdout.stream
 
 
 if __name__ == "__main__":

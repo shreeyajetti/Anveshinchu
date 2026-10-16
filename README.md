@@ -185,6 +185,8 @@ python -m src.cli search                  # interactive prompt; empty line quits
 python -m src.cli tokenize "తెలుగు వాక్యం"   # show how text is tokenized and normalized
 ```
 
+Add `--translit` to any command to print Telugu in Latin letters ([ISO 15919](https://en.wikipedia.org/wiki/ISO_15919)), for terminals that draw Telugu conjuncts incorrectly: `గ్రామంలో` prints as `grāmaṁlō`.
+
 **Query syntax.** Operators are upper-case and separated by spaces:
 
 | Query | Meaning |
@@ -225,22 +227,44 @@ Query: సినిమా /3 దర్శకత్వం  ->  14 document(s)
 
 See [`sample_output.md`](sample_output.md) for boolean, OR-across-suffixes and normalization examples.
 
+### 4. Evaluation: boolean AND vs BM25 ranking
+
+```bash
+python -m src.evaluate                                 # summary in the terminal
+python -m src.evaluate --report reports/evaluation.md  # plus every question, with transliteration
+```
+
+Each of the 828 dev questions is turned into query terms (`src/questions.py` drops question words like ఎప్పుడు "when" and ఎంత "how much", which never occur in answers) and answered two ways:
+
+- **AND** returns every passage containing all the terms. It is unranked, so it is scored on its whole result set.
+- **BM25** (`src/ranking.py`) scores every passage containing *any* of the terms, weighting rare words more and long passages less, and returns the top 10.
+
+| Exact terms, no stemming | Success | Recall | nDCG@10 | MRR@10 |
+|---|---:|---:|---:|---:|
+| AND (whole result set) | 12.7% | 12.3% | | |
+| BM25 (top 10) | 62.8% | 62.5% | 0.444 | 0.390 |
+
+*Success* = at least one relevant passage retrieved; *Recall* = share of relevant passages retrieved; nDCG@10 is MIRACL's official metric. AND returns nothing at all for 80% of questions, because a single missing word (often a differently suffixed form) empties the result.
+
+These numbers are optimistic in absolute terms. The collection is 18× smaller than the full corpus, two thirds of its passages come from judged articles, and the question-word list was built from these same questions. Compare rows, not against published results.
+
 ---
 
 ## Limitations
 
 - **Suffixed forms don't match** (ఇల్లు vs ఇంటికి, see above). This is the main limitation, recorded as an expected-failure test.
 - **The benchmark questions don't suit boolean search.** MIRACL questions are natural sentences (*హెమింగ్వే ఎప్పుడు పుట్టాడు?*). An AND over every word, including "when" and "born", rarely matches, so they need ranked retrieval.
-- **No ranking.** Results are ordered by match count, not by TF-IDF or BM25.
+- **The search command doesn't rank.** BM25 is used by the evaluation, but `search` still orders boolean results by match count.
 - **Subset, not the full collection.** The judged articles are guaranteed to be included, which makes the collection easier than the real 518k-passage one. Any evaluation numbers should say so.
 - **Positions cross sentence boundaries.** Punctuation isn't a position, so a phrase or proximity match can span the end of one sentence and the start of the next.
 
 ## Roadmap
 
-1. **Evaluation.** Measure recall on the dev questions before changing anything.
-2. **Suffix handling.** Stemming and/or character n-grams, measured against that baseline.
-3. **Ranking.** BM25.
-4. **Scale.** A compact on-disk index, then the full 518k-passage collection.
+1. ~~**Evaluation.**~~ Done: `src/evaluate.py`, AND vs BM25 on the dev questions.
+2. ~~**Ranking.**~~ Done for evaluation: `src/ranking.py`. Next: a ranked `search` mode for questions.
+3. **Suffix handling.** A rule-based stemmer (`src/stemmer.py`, in progress), measured against the exact-match baseline above.
+4. **Held-out evaluation.** Split the dev questions so rules are chosen on one half and measured on the other.
+5. **Scale.** A compact on-disk index, then the full 518k-passage collection.
 
 ## Data and license
 
