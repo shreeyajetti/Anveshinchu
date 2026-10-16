@@ -244,4 +244,4 @@ See [`sample_output.md`](sample_output.md) for boolean, OR-across-suffixes and n
 
 ## Data and license
 
-Passages come from Telugu Wikipedia via MIRACL ([dataset](https://huggingface.co/datasets/miracl/miracl), Apache-2.0; Wikipedia text is CC BY-SA). Zhang et al., *Making a MIRACL: Multilingual Information Retrieval Across a Continuum of Languages*, 2022.
+Passages come from Telugu Wikipedia via MIRACL ([dataset](https://huggingface.co/datasets/miracl/miracl), Apache-2.0; Wikipedia text is CC BY-SA). Xinyu Zhang et al., [*MIRACL: A Multilingual Retrieval Dataset Covering 18 Diverse Languages*](https://aclanthology.org/2023.tacl-1.63/), TACL 11 (2023), pp. 1114–1131.
