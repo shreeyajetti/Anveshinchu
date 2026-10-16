@@ -45,6 +45,8 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(analyze("౨౦౧౧")[0].term, "2011")  # Telugu digits -> ASCII
         self.assertEqual(analyze("ＡＢＣ")[0].term, "abc")  # full-width -> ASCII, lowercased
         self.assertEqual(analyze("“ ” … ।"), [])  # punctuation only
+        self.assertEqual(analyze("\u093cకేశవ")[0].term, "కేశవ")  # stray Devanagari nukta removed
+        self.assertEqual(analyze("जड़ता")[0].term, "जड़ता")  # real Hindi nukta kept
 
 
 class TestIndex(unittest.TestCase):

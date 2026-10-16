@@ -21,7 +21,7 @@ Telugu attaches suffixes directly to words, and the stem itself can change:
 | ఇంట్లో | in the house | 79 |
 | ఇంటి | of the house | 92 |
 
-A search for ఇల్లు should find all of them (275 passages), but exact word matching finds only 46. Simply chopping off endings doesn't connect ఇల్లు with ఇంటి- either. It shows up in the vocabulary size too: this collection has **208,970 distinct terms in 1.7 million words**, because every suffixed form counts as a separate term. Closing this gap, and measuring how well it's closed, is the next stage of the project.
+A search for ఇల్లు should find all of them (275 passages), but exact word matching finds only 46. Simply chopping off endings doesn't connect ఇల్లు with ఇంటి- either. It shows up in the vocabulary size too: this collection has **208,969 distinct terms in 1.7 million words**, because every suffixed form counts as a separate term. Closing this gap, and measuring how well it's closed, is the next stage of the project.
 
 ## The collection
 
@@ -131,7 +131,7 @@ python -m src.cli build                  # defaults: --data data --index index
 
 ```
 Loaded 29,268 passages from 2,446 articles in data/
-Indexed 29,268 docs, 208,970 distinct terms, 1,347,104 postings, 1,733,583 positions in 13.27s
+Indexed 29,268 docs, 208,969 distinct terms, 1,347,104 postings, 1,733,583 positions in 13.27s
 Saved index to index/index.json
 ```
 
