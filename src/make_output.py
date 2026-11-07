@@ -37,7 +37,7 @@ def section(title: str) -> list[str]:
 
 def test_storage(index, out: list[str]) -> bool:
     term = "గుంటూరు"
-    out += section("TEST CASE 1: Storage and retrieval - vocabulary in memory, postings read from disk by seek")
+    out += section("TEST CASE 1 - requirement (d): vocabulary in main memory, postings read from disk by seek")
     v = index.vocabulary
     i = v.find(term)
     out.append(f"Vocabulary entry (in memory) for {term}: df={v.df[i]:,} cf={v.cf[i]:,} "
@@ -58,7 +58,7 @@ def test_storage(index, out: list[str]) -> bool:
 
 def test_tokenizer(out: list[str]) -> bool:
     text = "విక్రమ్\u200c సారాభాయ్, 500 కి.మీ. (౨౦౧౧)"
-    out += section("TEST CASE 2: Tokenizer and normalizer - ZWNJ, punctuation, Telugu digits")
+    out += section("TEST CASE 2 - tokenizer and normalizer: zero-width joiner, punctuation, Telugu digits")
     out.append("$ python -m src.cli tokenize \"విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. (౨౦౧౧)\"")
     out.append(run_cli("tokenize", text))
     expected = ["విక్రమ్", "సారాభాయ్", "500", "కి", "మీ", "2011"]
@@ -68,7 +68,7 @@ def test_tokenizer(out: list[str]) -> bool:
 
 def test_boolean(index, out: list[str]) -> bool:
     query = "గుంటూరు AND జిల్లా AND NOT ప్రకాశం"
-    out += section("TEST CASE 3: Boolean query (AND, NOT)")
+    out += section("TEST CASE 3 - boolean query (AND, NOT) on the postings lists")
     out.append(f"$ python -m src.cli search \"{query}\" --top 5 --snippets 1")
     out.append(run_cli("search", query, "--index", str(index.dir), "--top", "5", "--snippets", "1"))
     a, b, c = (set(index.get_postings(t)) for t in ("గుంటూరు", "జిల్లా", "ప్రకాశం"))
@@ -81,7 +81,7 @@ def test_boolean(index, out: list[str]) -> bool:
 
 def test_phrase(index, out: list[str]) -> bool:
     query = '"తెలుగు సినిమా"'
-    out += section("TEST CASE 4: Phrase query - terms must be adjacent and in order")
+    out += section("TEST CASE 4 - phrase query: uses the stored positions (terms adjacent, in order)")
     out.append(f"$ python -m src.cli search '{query}' --top 5 --snippets 1")
     out.append(run_cli("search", query, "--index", str(index.dir), "--top", "5", "--snippets", "1"))
     results = search(index, query)
@@ -101,7 +101,7 @@ def test_phrase(index, out: list[str]) -> bool:
 
 def test_proximity(index, out: list[str]) -> bool:
     query = "సినిమా /3 దర్శకత్వం"
-    out += section("TEST CASE 5: Proximity query - within 3 positions, either order")
+    out += section("TEST CASE 5 - proximity query: uses the stored positions (within 3, either order)")
     out.append(f"$ python -m src.cli search \"{query}\" --top 5 --snippets 1")
     out.append(run_cli("search", query, "--index", str(index.dir), "--top", "5", "--snippets", "1"))
     results = search(index, query)
@@ -123,10 +123,12 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
     index = load_index(args.index)
 
-    out = ["Anveshinchu: positional index over Telugu Wikipedia - output", ""]
+    out = ["Assignment A1: Positional Index - output (roll number S20240010225)",
+           "Collection: Telugu Wikipedia dump tewiki-20261101-pages-articles.xml.bz2", ""]
+    out += section("INDEX STATISTICS")
     out.append("$ python -m src.cli stats")
     out.append(run_cli("stats", "--index", args.index))
-    out += section("10 RARE TERMS WITH THEIR POSITIONAL INDEX")
+    out += section("10 RARE TERMS WITH THEIR POSITIONAL INDEX - requirement (c): positions, df, cf")
     out.append("Format: doc <internal doc ID> [<Wikipedia page ID>] <article title>: tf=<occurrences in that article> "
                "positions=<word positions>")
     out.append("$ python -m src.cli rare --count 10")

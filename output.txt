@@ -1,7 +1,12 @@
-Anveshinchu: positional index over Telugu Wikipedia - output
+Assignment A1: Positional Index - output (roll number S20240010225)
+Collection: Telugu Wikipedia dump tewiki-20261101-pages-articles.xml.bz2
 
+
+====================================================================================================
+INDEX STATISTICS
+====================================================================================================
 $ python -m src.cli stats
-Loaded vocabulary (1,932,309 terms) and document table from index/ in 1.9s; postings stay on disk
+Loaded vocabulary (1,932,309 terms) and document table from index/ in 2.5s; postings stay on disk
   language: Telugu
   tokenizer: Unicode letter/mark/number runs
   normalization: remove ZWNJ/ZWJ and stray nukta, NFKC, Telugu digits -> ASCII, lowercase
@@ -16,7 +21,7 @@ Loaded vocabulary (1,932,309 terms) and document table from index/ in 1.9s; post
   merge_seconds: 37.4
 
 ====================================================================================================
-10 RARE TERMS WITH THEIR POSITIONAL INDEX
+10 RARE TERMS WITH THEIR POSITIONAL INDEX - requirement (c): positions, df, cf
 ====================================================================================================
 Format: doc <internal doc ID> [<Wikipedia page ID>] <article title>: tf=<occurrences in that article> positions=<word positions>
 $ python -m src.cli rare --count 10
@@ -60,7 +65,7 @@ Term 'వెల్లాంటిలోనూ': document frequency (df) 2, colle
   doc 30224 [52713] సజ్జాపురం (నెల్లూరు): tf=1 positions=[78]
 
 ====================================================================================================
-TEST CASE 1: Storage and retrieval - vocabulary in memory, postings read from disk by seek
+TEST CASE 1 - requirement (d): vocabulary in main memory, postings read from disk by seek
 ====================================================================================================
 Vocabulary entry (in memory) for గుంటూరు: df=3,005 cf=5,723 offset=145,145,863 length=37,844 bytes
 Bytes 145,145,863..145,183,707 of postings.txt (first 300 characters):
@@ -71,7 +76,7 @@ Bytes 145,145,863..145,183,707 of postings.txt (first 300 characters):
   [PASS] every position list is sorted
 
 ====================================================================================================
-TEST CASE 2: Tokenizer and normalizer - ZWNJ, punctuation, Telugu digits
+TEST CASE 2 - tokenizer and normalizer: zero-width joiner, punctuation, Telugu digits
 ====================================================================================================
 $ python -m src.cli tokenize "విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. (౨౦౧౧)"
 Input: విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. (౨౦౧౧)
@@ -90,7 +95,7 @@ Input: విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. 
   [PASS] index terms are ['విక్రమ్', 'సారాభాయ్', '500', 'కి', 'మీ', '2011'] (ZWNJ removed, punctuation split off, ౨౦౧౧ -> 2011)
 
 ====================================================================================================
-TEST CASE 3: Boolean query (AND, NOT)
+TEST CASE 3 - boolean query (AND, NOT) on the postings lists
 ====================================================================================================
 $ python -m src.cli search "గుంటూరు AND జిల్లా AND NOT ప్రకాశం" --top 5 --snippets 1
 Query: గుంటూరు AND జిల్లా AND NOT ప్రకాశం  ->  2,048 document(s)
@@ -114,7 +119,7 @@ Check from postings: |గుంటూరు| = 3,005, |జిల్లా| = 47,
   [PASS] the result set equals the set operations on the postings lists
 
 ====================================================================================================
-TEST CASE 4: Phrase query - terms must be adjacent and in order
+TEST CASE 4 - phrase query: uses the stored positions (terms adjacent, in order)
 ====================================================================================================
 $ python -m src.cli search '"తెలుగు సినిమా"' --top 5 --snippets 1
 Query: "తెలుగు సినిమా"  ->  4,993 document(s)
@@ -144,7 +149,7 @@ Documents containing both words anywhere: 9,431; as a phrase: 4,993
   [PASS] the phrase matches fewer documents than AND of the two words
 
 ====================================================================================================
-TEST CASE 5: Proximity query - within 3 positions, either order
+TEST CASE 5 - proximity query: uses the stored positions (within 3, either order)
 ====================================================================================================
 $ python -m src.cli search "సినిమా /3 దర్శకత్వం" --top 5 --snippets 1
 Query: సినిమా /3 దర్శకత్వం  ->  509 document(s)
