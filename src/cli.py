@@ -1,7 +1,8 @@
 """Command-line interface.
 
-    python -m src.cli build    [--data data] [--index index]   # Storage
-    python -m src.cli stats    [--index index]                 # Retrieval (load + inspect)
+    python -m src.cli build    [--source wiki|miracl] [--index index]   # Storage
+    python -m src.cli stats    [--index index] [--term T ...]          # Retrieval (load + inspect)
+    python -m src.cli rare     [--count 10]                            # rare terms with their postings
     python -m src.cli search   "QUERY" [--index index]         # Search
     python -m src.cli search                                   # interactive search prompt
     python -m src.cli tokenize "తెలుగు వాక్యం"                   # show the analysis pipeline
@@ -11,49 +12,93 @@ for terminals that render Telugu script incorrectly.
 """
 
 import argparse
+import random
 import sys
 import time
+from pathlib import Path
 
-from .indexer import build_index, load_documents
-from .normalizer import normalize
+from .indexer import load_documents
+from .normalizer import analyze, normalize
 from .query import QueryError
 from .search import search, snippet
-from .storage import load_index, save_index
+from .storage import build_disk_index, load_index
 from .tokenizer import tokenize
 from .translit import TransliteratingStream
 
 
+DEFAULT_DUMP = ".cache/tewiki/tewiki-20261101-pages-articles.xml.bz2"
+PIPELINE_META = {
+    "language": "Telugu",
+    "tokenizer": "Unicode letter/mark/number runs",
+    "normalization": "remove ZWNJ/ZWJ and stray nukta, NFKC, Telugu digits -> ASCII, lowercase",
+}
+
+
 def cmd_build(args) -> None:
     started = time.perf_counter()
-    documents = load_documents(args.data)
-    articles = {d.docid.split("#")[0] for d in documents}
-    print(f"Loaded {len(documents):,} passages from {len(articles):,} articles in {args.data}/")
-    index = build_index(documents)
-    path = save_index(index, args.index)
-    m = index.meta
+    if args.source == "wiki":
+        from .wikidump import iter_articles
+
+        documents = iter_articles(args.dump)
+        meta = {**PIPELINE_META, "collection": "Telugu Wikipedia, all articles", "source": Path(args.dump).name}
+        print(f"Streaming articles from {args.dump}")
+    else:
+        documents = load_documents(args.data)
+        meta = {**PIPELINE_META, "collection": "MIRACL v1.0 Telugu (subset)", "source": "data/passages.jsonl"}
+        print(f"Loaded {len(documents):,} passages from {args.data}/")
+
+    def progress(writer):
+        print(f"  {writer.num_docs:,} documents, {writer.num_positions:,} positions, "
+              f"{len(writer.blocks)} blocks written, {time.perf_counter() - started:.0f}s", flush=True)
+
+    m = build_disk_index(documents, args.index, meta, args.block_positions, progress)
     print(
         f"Indexed {m['num_docs']:,} docs, {m['num_terms']:,} distinct terms, "
         f"{m['num_postings']:,} postings, {m['num_positions']:,} positions "
-        f"in {time.perf_counter() - started:.2f}s"
+        f"in {time.perf_counter() - started:.2f}s ({m['num_blocks']} blocks merged in {m['merge_seconds']}s)"
     )
-    print(f"Saved index to {path.as_posix()}")
+    print(f"Saved index to {Path(args.index).as_posix()}/")
+
+
+def print_postings(index, term: str, limit: int) -> None:
+    postings = index.get_postings(term)
+    print(f"\nTerm {term!r}: document frequency (df) {index.df(term):,}, collection frequency (cf) {index.cf(term):,}")
+    for doc_id, positions in sorted(postings.items())[:limit]:
+        info = index.docs[doc_id]
+        print(f"  doc {doc_id} [{info['docid']}] {info['title']}: tf={len(positions)} positions={positions}")
+    if len(postings) > limit:
+        print(f"  ... {len(postings) - limit:,} more documents")
 
 
 def cmd_stats(args) -> None:
     started = time.perf_counter()
     index = load_index(args.index)
-    print(f"Loaded index from {args.index}/ in {time.perf_counter() - started:.3f}s (no re-tokenization)")
+    print(f"Loaded vocabulary ({len(index.vocabulary):,} terms) and document table from {args.index}/ "
+          f"in {time.perf_counter() - started:.1f}s; postings stay on disk")
     for key, value in index.meta.items():
         print(f"  {key}: {value}")
-    if args.term:
-        for term in args.term:
-            postings = index.get_postings(term)
-            print(f"\nPostings for {term!r} (document frequency {len(postings):,}):")
-            for doc_id, positions in sorted(postings.items())[: args.limit]:
-                info = index.docs[doc_id]
-                print(f"  doc {doc_id} [{info['docid']}] {info['title']}: tf={len(positions)} positions={positions}")
-            if len(postings) > args.limit:
-                print(f"  ... {len(postings) - args.limit:,} more documents")
+    for term in args.term or []:
+        analyzed = [t.term for t in analyze(term)]  # same normalization as the documents
+        print_postings(index, analyzed[0] if len(analyzed) == 1 else term, args.limit)
+
+
+def is_telugu_word(term: str) -> bool:
+    return all("\u0c00" <= ch <= "\u0c7f" for ch in term)
+
+
+def cmd_rare(args) -> None:
+    """Pick rare terms (low df) at random, with a fixed seed, and print their positional postings."""
+    index = load_index(args.index)
+    v = index.vocabulary
+    candidates = [
+        i for i in range(len(v))
+        if v.df[i] <= args.max_df and v.cf[i] >= args.min_cf and len(v.terms[i]) >= args.min_length
+        and is_telugu_word(v.terms[i])
+    ]
+    print(f"{len(candidates):,} candidate terms: Telugu script only, at least {args.min_length} code points, "
+          f"df <= {args.max_df}, cf >= {args.min_cf}; {args.count} chosen at random (seed {args.seed})")
+    for i in sorted(random.Random(args.seed).sample(candidates, args.count), key=lambda i: v.terms[i]):
+        print_postings(index, v.terms[i], args.limit)
 
 
 def print_results(index, query: str, max_snippets: int, top: int) -> None:
@@ -120,9 +165,13 @@ def main(argv=None) -> None:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--translit", action="store_true", help="print Telugu in Latin letters (ISO 15919)")
 
-    p = sub.add_parser("build", parents=[common], help="build the index from data/ and save it to index/")
+    p = sub.add_parser("build", parents=[common], help="build the disk index (vocabulary + postings) in index/")
+    p.add_argument("--source", choices=["wiki", "miracl"], default="wiki",
+                   help="wiki: the Telugu Wikipedia XML dump (default); miracl: data/passages.jsonl, for evaluation")
+    p.add_argument("--dump", default=DEFAULT_DUMP, help="path of the tewiki-*-pages-articles.xml.bz2 dump")
     p.add_argument("--data", default="data")
     p.add_argument("--index", default="index")
+    p.add_argument("--block-positions", type=int, default=2_000_000, help="positions per in-memory block")
     p.set_defaults(func=cmd_build)
 
     p = sub.add_parser("stats", parents=[common], help="load a saved index and print statistics / postings")
@@ -130,6 +179,16 @@ def main(argv=None) -> None:
     p.add_argument("--term", nargs="*", help="show the positional postings list of these terms")
     p.add_argument("--limit", type=int, default=10, help="max documents shown per postings list")
     p.set_defaults(func=cmd_stats)
+
+    p = sub.add_parser("rare", parents=[common], help="print randomly chosen rare terms with df, cf and postings")
+    p.add_argument("--index", default="index")
+    p.add_argument("--count", type=int, default=10)
+    p.add_argument("--max-df", type=int, default=3)
+    p.add_argument("--min-cf", type=int, default=2)
+    p.add_argument("--min-length", type=int, default=5)
+    p.add_argument("--seed", type=int, default=2026)
+    p.add_argument("--limit", type=int, default=10, help="max documents shown per postings list")
+    p.set_defaults(func=cmd_rare)
 
     p = sub.add_parser("search", parents=[common], help="run a query against a saved index")
     p.add_argument("query", nargs="?", help="omit for an interactive prompt")

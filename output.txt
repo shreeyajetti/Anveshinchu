@@ -1,0 +1,173 @@
+Anveshinchu: positional index over Telugu Wikipedia - output
+
+$ python -m src.cli stats
+Loaded vocabulary (1,932,309 terms) and document table from index/ in 1.9s; postings stay on disk
+  language: Telugu
+  tokenizer: Unicode letter/mark/number runs
+  normalization: remove ZWNJ/ZWJ and stray nukta, NFKC, Telugu digits -> ASCII, lowercase
+  collection: Telugu Wikipedia, all articles
+  source: tewiki-20261101-pages-articles.xml.bz2
+  num_docs: 130227
+  num_terms: 1932309
+  num_postings: 31586378
+  num_positions: 52527950
+  num_blocks: 27
+  block_positions: 2000000
+  merge_seconds: 37.4
+
+====================================================================================================
+10 RARE TERMS WITH THEIR POSITIONAL INDEX
+====================================================================================================
+Format: doc <internal doc ID> [<Wikipedia page ID>] <article title>: tf=<occurrences in that article> positions=<word positions>
+$ python -m src.cli rare --count 10
+395,815 candidate terms: Telugu script only, at least 5 code points, df <= 3, cf >= 2; 10 chosen at random (seed 2026)
+
+Term 'ఒపెల్వేకిన్': document frequency (df) 1, collection frequency (cf) 2
+  doc 99994 [423736] ఒప్రెల్వెకిన్: tf=2 positions=[1, 68]
+
+Term 'కరాదిగూడంలో': document frequency (df) 1, collection frequency (cf) 4
+  doc 13155 [22130] కరాదిగూడం: tf=4 positions=[252, 507, 552, 566]
+
+Term 'చిన్ననగిరి': document frequency (df) 2, collection frequency (cf) 2
+  doc 1322 [4811] మద్దికేర తూర్పు: tf=1 positions=[671]
+  doc 54448 [200669] గొల్ల: tf=1 positions=[835]
+
+Term 'దుంపలతోను': document frequency (df) 1, collection frequency (cf) 2
+  doc 47802 [142010] పౌష్టిక ఆహారం: tf=2 positions=[1405, 2372]
+
+Term 'మట్టీని': document frequency (df) 3, collection frequency (cf) 3
+  doc 9832 [18623] యోగి: tf=1 positions=[69]
+  doc 38658 [83120] భగవద్గీత-ఆత్మసంయమ యోగము: tf=1 positions=[158]
+  doc 41350 [99759] నెమలిగుండ్ల రంగనాయకస్వామి ఆలయం: tf=1 positions=[61]
+
+Term 'మల్కియాత్': document frequency (df) 2, collection frequency (cf) 3
+  doc 99078 [422030] అమర్ మల్కియాత్ సింగ్: tf=2 positions=[1, 4]
+  doc 126053 [503197] జస్టిన్ ట్రూడో: tf=1 positions=[4135]
+
+Term 'యాంటె': document frequency (df) 2, collection frequency (cf) 2
+  doc 44909 [120123] కాల నిర్ణయం: tf=1 positions=[111]
+  doc 103895 [432127] మరియా ఐ. జాన్స్టన్: tf=1 positions=[803]
+
+Term 'లుడాక్రిస్': document frequency (df) 1, collection frequency (cf) 2
+  doc 121021 [484077] బెంగళూరు ప్యాలెస్: tf=2 positions=[179, 261]
+
+Term 'వారిమనోగతులెల్ల': document frequency (df) 2, collection frequency (cf) 2
+  doc 4355 [12306] శ్రీకృష్ణ తులాభారం (1955 సినిమా): tf=1 positions=[303]
+  doc 4356 [12307] శ్రీకృష్ణ తులాభారం (1966 సినిమా): tf=1 positions=[354]
+
+Term 'వెల్లాంటిలోనూ': document frequency (df) 2, collection frequency (cf) 2
+  doc 15274 [24552] గొల్ల కందుకూరు: tf=1 positions=[79]
+  doc 30224 [52713] సజ్జాపురం (నెల్లూరు): tf=1 positions=[78]
+
+====================================================================================================
+TEST CASE 1: Storage and retrieval - vocabulary in memory, postings read from disk by seek
+====================================================================================================
+Vocabulary entry (in memory) for గుంటూరు: df=3,005 cf=5,723 offset=145,145,863 length=37,844 bytes
+Bytes 145,145,863..145,183,707 of postings.txt (first 300 characters):
+  గుంటూరు	1:0,2,12,49,61,80,89,183,234,265,284,303,495,504,506,534,835,846,857,863,869,909,911,914,916,940,950,955,963,992,1006;2:457,2876,3387,3804,4566;16:1012;25:95;33:931;39:1619;63:686,707;69:1185;75:371;83:226,312;93:690;127:695;138:23,53,131,191,911,948;140:604;154:934;159:1109;165:1426;172:29; ...
+  [PASS] the vocabulary offset points exactly at this term's postings line
+  [PASS] df = number of documents in the postings list (3,005)
+  [PASS] cf = total number of positions in the postings list (5,723)
+  [PASS] every position list is sorted
+
+====================================================================================================
+TEST CASE 2: Tokenizer and normalizer - ZWNJ, punctuation, Telugu digits
+====================================================================================================
+$ python -m src.cli tokenize "విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. (౨౦౧౧)"
+Input: విక్రమ్<ZWNJ> సారాభాయ్, 500 కి.మీ. (౨౦౧౧)
+
+1. Tokenizer (runs of Unicode letters, vowel signs/marks, numbers):
+   విక్రమ్<ZWNJ> | సారాభాయ్ | 500 | కి | మీ | ౨౦౧౧
+     0-8   విక్రమ్<ZWNJ>   [0C35 0C3F 0C15 0C4D 0C30 0C2E 0C4D 200C]
+     9-17  సారాభాయ్   [0C38 0C3E 0C30 0C3E 0C2D 0C3E 0C2F 0C4D]
+    19-22  500   [0035 0030 0030]
+    23-25  కి   [0C15 0C3F]
+    26-28  మీ   [0C2E 0C40]
+    31-35  ౨౦౧౧   [0C68 0C66 0C67 0C67]
+
+2. Normalizer (remove ZWNJ/ZWJ, NFKC, Telugu digits -> 0-9, lowercase) -> index terms with positions:
+   0:విక్రమ్  1:సారాభాయ్  2:500  3:కి  4:మీ  5:2011
+  [PASS] index terms are ['విక్రమ్', 'సారాభాయ్', '500', 'కి', 'మీ', '2011'] (ZWNJ removed, punctuation split off, ౨౦౧౧ -> 2011)
+
+====================================================================================================
+TEST CASE 3: Boolean query (AND, NOT)
+====================================================================================================
+$ python -m src.cli search "గుంటూరు AND జిల్లా AND NOT ప్రకాశం" --top 5 --snippets 1
+Query: గుంటూరు AND జిల్లా AND NOT ప్రకాశం  ->  2,048 document(s)
+  doc 96932 [417624] బ్రిటిషు భారతదేశంలో జిల్లాలు  (277 match(es))
+      positions 77-77: …డివిజన్ జిల్లాలు దరాంగ్ 【జిల్లా】 గోల్‌పరా జిల్లా కమ్రూప్…
+      ... 276 more
+  doc 85438 [384444] ఉట్నూరు సాహితీ వేదిక  (61 match(es))
+      positions 17-17: … తెలంగాణ రాష్ట్రం,ఆదిలాబాద్ 【జిల్లా】, ఉట్నూర్ మండలంలో 2013…
+      ... 60 more
+  doc 67083 [300226] మోదుగుల రవికృష్ణ  (57 match(es))
+      positions 17-17: …విద్య రవికృష్ణ మే 15 , 1973న 【గుంటూరు】 జిల్లాలోని బాపట్లలో…
+      ... 56 more
+  doc 192 [1487] తెలంగాణ  (51 match(es))
+      positions 334-334: …ఉండగా అందులో నేటి ఆదిలాబాదు 【జిల్లా】 ప్రాంతం భాగంగా ఉండింది.…
+      ... 50 more
+  doc 82741 [377358] ముత్యాలహారాలు ప్రక్రియ  (45 match(es))
+      positions 79-79: …ప్రక్రియ ప్రస్థానం అడవి 【జిల్లా】 ఎజేన్సీ ఉట్నూరు సాహితీ వేదిక…
+      ... 44 more
+  ... 2,043 more documents (use --top to show more)
+Check from postings: |గుంటూరు| = 3,005, |జిల్లా| = 47,599, |ప్రకాశం| = 1,939, (గుంటూరు ∩ జిల్లా) − ప్రకాశం = 2,048
+  [PASS] the result set equals the set operations on the postings lists
+
+====================================================================================================
+TEST CASE 4: Phrase query - terms must be adjacent and in order
+====================================================================================================
+$ python -m src.cli search '"తెలుగు సినిమా"' --top 5 --snippets 1
+Query: "తెలుగు సినిమా"  ->  4,993 document(s)
+  doc 1653 [6185] తెలుగు సినిమా  (24 match(es))
+      positions 0-1: …【తెలుగు సినిమా】 తెలుగు సినిమా లేదా టాలీవుడ్…
+      ... 23 more
+  doc 29487 [51937] రాముడు (అయోమయ నివృత్తి)  (22 match(es))
+      positions 23-24: …రాముడు -1988 లో విడుదలైన 【తెలుగు సినిమా】 దొంగ రాముడు -1955 లో…
+      ... 21 more
+  doc 25053 [39031] తెలుగు సినిమా చరిత్ర  (18 match(es))
+      positions 0-1: …【తెలుగు సినిమా】 చరిత్ర 1931నుండి తెలుగు…
+      ... 17 more
+  doc 43103 [110177] అల్లరి  (17 match(es))
+      positions 5-6: …ప్రియుడు 1993 【తెలుగు సినిమా】 అల్లరి మొగుడు 1992 తెలుగు…
+      ... 16 more
+  doc 35161 [64530] రాజా  (13 match(es))
+      positions 13-14: …(సినిమా) కొండపల్లి రాజా : 【తెలుగు సినిమా】 బొబ్బిలి రాజా : తెలుగు…
+      ... 12 more
+  ... 4,988 more documents (use --top to show more)
+Check doc 1653: తెలుగు at [0, 2, 16, 25, 60, 117, 177, 226, 233, 248, 259, 342] ..., సినిమా at [1, 3, 11, 17, 26, 61, 110, 118, 223, 231, 249, 260] ... -> adjacent at [0, 2, 16, 25, 60, 117, 248, 259, 475, 515, 564, 763]
+  [PASS] doc 1653: every match is a position p with సినిమా at p+1
+Check doc 29487: తెలుగు at [16, 23, 30, 36, 43, 49, 55, 62, 69, 75, 82, 89] ..., సినిమా at [24, 31, 37, 44, 50, 56, 63, 70, 76, 83, 90, 97] ... -> adjacent at [23, 30, 36, 43, 49, 55, 62, 69, 75, 82, 89, 96]
+  [PASS] doc 29487: every match is a position p with సినిమా at p+1
+Check doc 25053: తెలుగు at [0, 4, 8, 15, 87, 99, 122, 153, 164, 263, 344, 800] ..., సినిమా at [1, 9, 16, 45, 126, 137, 154, 168, 252, 264, 268, 801] ... -> adjacent at [0, 8, 15, 153, 263, 800, 1025, 1368, 1697, 1959, 2279, 2308]
+  [PASS] doc 25053: every match is a position p with సినిమా at p+1
+Documents containing both words anywhere: 9,431; as a phrase: 4,993
+  [PASS] the phrase matches fewer documents than AND of the two words
+
+====================================================================================================
+TEST CASE 5: Proximity query - within 3 positions, either order
+====================================================================================================
+$ python -m src.cli search "సినిమా /3 దర్శకత్వం" --top 5 --snippets 1
+Query: సినిమా /3 దర్శకత్వం  ->  509 document(s)
+  doc 25133 [39249] కె.వి.రెడ్డి  (7 match(es))
+      positions 122-124: …1942లో భక్త పోతన సినిమాకు 【దర్శకత్వం వహించాడు. సినిమా】 మంచి విజయం కావడంతో వాహినీ…
+      ... 6 more
+  doc 44490 [117988] విజయలక్ష్మీ మూవీస్  (5 match(es))
+      positions 58-60: … 1978 లో డి.ఎస్.ప్రకాష్ రాజు 【దర్శకత్వం వహించిన సినిమా】. బండోడు గుండమ్మ 1980 లో…
+      ... 4 more
+  doc 57629 [225739] పంజాబీ సినిమా(భారతదేశం)  (4 match(es))
+      positions 1191-1194: …ప్రీతి సర్పూ స్వయంగా 【దర్శకత్వం వహించిన ఈ సినిమా】 మంచి విజయం సాధించింది.…
+      ... 3 more
+  doc 865 [3813] తెలుగు సినిమాలు 1937  (3 match(es))
+      positions 69-70: …విభూతి దాస్. సారంగధర (1937 【సినిమా) దర్శకత్వం】: పి.పుల్లయ్య విజయదశమి (1937…
+      ... 2 more
+  doc 37607 [78272] ఎం. వి. రఘు  (3 match(es))
+      positions 474-476: …అద్భుత చాయగ్రహణంతో ఈ 【సినిమా వంశీ దర్శకత్వం】 వహిస్తే పూర్ణోదయ మూవీ…
+      ... 2 more
+  ... 504 more documents (use --top to show more)
+  [PASS] the result set equals all documents with a pair |p - q| <= 3 (509, brute force)
+Check doc 25133: (సినిమా, దర్శకత్వం) position pairs within 3: [(124, 122), (1346, 1343), (3831, 3834), (4571, 4573), (4576, 4573), (4694, 4695), (6194, 6195)]
+  [PASS] doc 25133 has at least one such pair
+
+====================================================================================================
+SUMMARY: 5 of 5 test cases passed
+====================================================================================================

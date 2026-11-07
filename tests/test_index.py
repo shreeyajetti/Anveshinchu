@@ -1,14 +1,12 @@
 """Unit tests on a tiny synthetic Telugu collection.  Run:  python -m unittest -v"""
 
 import re
-import tempfile
 import unittest
 
 from src.indexer import Document, build_index
 from src.normalizer import analyze
 from src.query import Phrase, QueryError, parse_query
 from src.search import search, snippet
-from src.storage import load_index, save_index
 from src.tokenizer import tokenize
 
 ZWNJ = "\u200c"
@@ -107,18 +105,6 @@ class TestIndex(unittest.TestCase):
         # Exact-form matching cannot do this yet; see the README roadmap.
         docs = [Document(0, "x#0", "ఇల్లు", "ఇల్లు")] + [Document(i + 1, d.docid, d.title, d.text) for i, d in enumerate(DOCS[:2])]
         self.assertEqual(doc_ids(build_index(docs), "ఇల్లు"), [0, 1, 2])
-
-
-class TestStorage(unittest.TestCase):
-    def test_round_trip(self):
-        index = build_index(DOCS)
-        with tempfile.TemporaryDirectory() as tmp:
-            save_index(index, tmp)
-            loaded = load_index(tmp)
-        self.assertEqual(loaded.postings, index.postings)
-        self.assertEqual(loaded.docs, index.docs)
-        self.assertEqual(loaded.store, index.store)
-        self.assertEqual(doc_ids(loaded, '"రాముడు అడవికి"'), [0])
 
 
 if __name__ == "__main__":

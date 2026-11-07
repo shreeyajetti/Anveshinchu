@@ -1,6 +1,7 @@
 """Evaluation on the MIRACL Telugu dev questions: boolean AND vs BM25.
 
-    python -m src.evaluate [--index index] [--data data] [--report reports/evaluation.md]
+    python -m src.cli build --source miracl --index index-miracl   # once
+    python -m src.evaluate [--index index-miracl] [--data data] [--report reports/evaluation.md]
 
 Each question is turned into terms with questions.question_terms() (question
 words dropped), then answered two ways:
@@ -57,7 +58,7 @@ def load_qrels(path: Path) -> dict[str, set[str]]:
 def stem_index(index: InvertedIndex, stem) -> InvertedIndex:
     """A copy of the index whose terms are stems; positions are merged, so phrases still work."""
     postings: dict[str, dict[int, list[int]]] = {}
-    for term, docs in index.postings.items():
+    for term, docs in index.iter_postings():
         merged = postings.setdefault(stem(term), {})
         for doc_id, positions in docs.items():
             merged.setdefault(doc_id, []).extend(positions)
@@ -172,7 +173,7 @@ def main(argv=None) -> None:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Evaluate boolean AND and BM25 on the MIRACL Telugu dev questions")
-    parser.add_argument("--index", default="index")
+    parser.add_argument("--index", default="index-miracl", help="index built with --source miracl")
     parser.add_argument("--data", default="data")
     parser.add_argument("--report", type=Path, help="write a Markdown report with every question to this path")
     args = parser.parse_args(argv)
