@@ -123,7 +123,7 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
     index = load_index(args.index)
 
-    out = ["Assignment A1: Positional Index - output (roll number S20240010225)",
+    out = ["Positional index over Telugu Wikipedia - output",
            "Collection: Telugu Wikipedia dump tewiki-20261101-pages-articles.xml.bz2", ""]
     out += section("INDEX STATISTICS")
     out.append("$ python -m src.cli stats")

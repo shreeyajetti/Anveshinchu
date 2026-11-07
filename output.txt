@@ -1,4 +1,4 @@
-Assignment A1: Positional Index - output (roll number S20240010225)
+Positional index over Telugu Wikipedia - output
 Collection: Telugu Wikipedia dump tewiki-20261101-pages-articles.xml.bz2
 
 
@@ -6,7 +6,7 @@ Collection: Telugu Wikipedia dump tewiki-20261101-pages-articles.xml.bz2
 INDEX STATISTICS
 ====================================================================================================
 $ python -m src.cli stats
-Loaded vocabulary (1,932,309 terms) and document table from index/ in 2.5s; postings stay on disk
+Loaded vocabulary (1,932,309 terms) and document table from index/ in 1.8s; postings stay on disk
   language: Telugu
   tokenizer: Unicode letter/mark/number runs
   normalization: remove ZWNJ/ZWJ and stray nukta, NFKC, Telugu digits -> ASCII, lowercase

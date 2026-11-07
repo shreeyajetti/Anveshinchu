@@ -1,7 +1,5 @@
 # Anveshinchu (అన్వేషించు)
 
-**Assignment A1: Positional Index** · Information Retrieval, M2026 · Roll number **S20240010225**
-
 A positional inverted index over the whole Telugu Wikipedia. The vocabulary, with document and collection frequencies, is kept in main memory; the postings lists are kept on disk. Python standard library only.
 
 | | |
